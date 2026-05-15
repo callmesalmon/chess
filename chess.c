@@ -137,8 +137,12 @@ int move_piece(chessSquare *piece, chessSquare *dest) {
 int main() {
     make_board();
 
+    enum chessPieceColor turn = WHITE;
     while (1) {
         print_board();
+        printf("\n");
+
+        printf("Turn: %s\n", (turn == WHITE) ? "White" : "Black");
 
         char from[3];
         printf("from: ");
@@ -148,14 +152,12 @@ int main() {
         printf("to: ");
         scanf("%2s", to);
 
-        printf("(");
-        print_square(parse_coordinates(from)->piece);
-        printf(")\n");
-
-        printf("(");
-        print_square(parse_coordinates(to)->piece);
-        printf(")\n");
+        if (parse_coordinates(from)->piece.type == EMPTY) continue;
+        if (parse_coordinates(from)->piece.color != turn) continue;
 
         move_piece(parse_coordinates(from), parse_coordinates(to));
+
+        turn = (turn == WHITE) ? BLACK : WHITE;
+        printf("\n");
     }
 }
