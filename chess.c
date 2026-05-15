@@ -117,21 +117,45 @@ int print_board() {
     return 0;
 }
 
-int move_piece(chessSquare piece, chessSquare dest) {
-    if (piece.piece.type == EMPTY || piece.piece.color == NO_COLOR) return -1;
-    if (!is_good_square(piece) || !is_good_square(dest)) return -1;
-
-    dest.piece.type = piece.piece.type;
-    dest.piece.color = piece.piece.color;
-    piece.piece.type = EMPTY;
-    piece.piece.color = NO_COLOR;
-
-    return 0;
+chessSquare *parse_coordinates(const char *coords) {
+    int file = coords[0] - 'a';
+    int row  = coords[1] - '1';
+    return &chess_board[row][file];
 }
 
+int move_piece(chessSquare *piece, chessSquare *dest) {
+    if (piece->piece.type == EMPTY || piece->piece.color == NO_COLOR) return -1;
+    if (!is_good_square(*piece) || !is_good_square(*dest)) return -1;
+
+    dest->piece.type = piece->piece.type;
+    dest->piece.color = piece->piece.color;
+    piece->piece.type = EMPTY;
+    piece->piece.color = NO_COLOR;
+    return 0;
+}
 
 int main() {
     make_board();
 
-    print_board();
+    while (1) {
+        print_board();
+
+        char from[3];
+        printf("from: ");
+        scanf("%2s", from);
+
+        char to[3];
+        printf("to: ");
+        scanf("%2s", to);
+
+        printf("(");
+        print_square(parse_coordinates(from)->piece);
+        printf(")\n");
+
+        printf("(");
+        print_square(parse_coordinates(to)->piece);
+        printf(")\n");
+
+        move_piece(parse_coordinates(from), parse_coordinates(to));
+    }
 }
