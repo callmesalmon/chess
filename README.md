@@ -1,2 +1,5 @@
 # chess
 A small implementation of chess in C.
+
+> [!WARNING]
+> THIS THING IS VERY, *VERY*, WORK-IN-PROGRESS! DO NOT EXPECT TO GET A WORKING PROGRAM OUT OF THIS!!!
