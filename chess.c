@@ -123,14 +123,66 @@ chessSquare *parse_coordinates(const char *coords) {
     return &chess_board[row][file];
 }
 
+int row_to_int(chessSquare *square) {
+    return (square->row - '1');
+}
+
+int file_to_int(chessSquare *square) {
+    return (square->file - 'a');
+}
+
+#define MOVE_LEGAL   24
+#define MOVE_ILLEGAL 25
+
+int is_valid_move(chessSquare *piece, chessSquare *dest) {
+    if (piece->piece.type == PAWN) {
+        if (piece->piece.color == WHITE) {
+            if (row_to_int(piece) == 1) {
+                if (row_to_int(dest) > row_to_int(piece) + 2) {
+                    return MOVE_ILLEGAL;
+                }
+            }
+            else if (row_to_int(dest) > row_to_int(piece) + 1) {
+                return MOVE_ILLEGAL;
+            }
+
+            if (file_to_int(piece) != file_to_int(dest)) {
+                if (row_to_int(dest) == row_to_int(piece) + 1 && dest->piece.type != EMPTY) {
+                    return MOVE_LEGAL;
+                }
+                return MOVE_ILLEGAL;
+            }
+        }
+        if (piece->piece.color == BLACK) {
+            if (row_to_int(piece) == 6) {
+                if (row_to_int(dest) < row_to_int(piece) - 2) {
+                    return MOVE_ILLEGAL;
+                }
+            }
+            else if (row_to_int(dest) < row_to_int(piece) - 1) {
+                return MOVE_ILLEGAL;
+            }
+            if (file_to_int(piece) != file_to_int(dest)) {
+                if (row_to_int(dest) == row_to_int(piece) - 1 && dest->piece.type != EMPTY) {
+                    return MOVE_LEGAL;
+                }
+                return MOVE_ILLEGAL;
+            }
+        }
+        if (dest->piece.type != EMPTY && file_to_int(piece) == file_to_int(dest)) return MOVE_ILLEGAL;
+    }
+}
+
 int move_piece(chessSquare *piece, chessSquare *dest) {
-    if (piece->piece.type == EMPTY || piece->piece.color == NO_COLOR) return -1;
-    if (!is_good_square(*piece) || !is_good_square(*dest)) return -1;
+    if (piece->piece.type == EMPTY || piece->piece.color == NO_COLOR) return MOVE_ILLEGAL;
+    if (!is_good_square(*piece) || !is_good_square(*dest)) return MOVE_ILLEGAL;
+    if (is_valid_move(piece, dest) == MOVE_ILLEGAL) return MOVE_ILLEGAL;
 
     dest->piece.type = piece->piece.type;
     dest->piece.color = piece->piece.color;
     piece->piece.type = EMPTY;
     piece->piece.color = NO_COLOR;
+
     return 0;
 }
 
@@ -152,10 +204,25 @@ int main() {
         printf("to: ");
         scanf("%2s", to);
 
-        if (parse_coordinates(from)->piece.type == EMPTY) continue;
-        if (parse_coordinates(from)->piece.color != turn) continue;
+        chessSquare *from_square = parse_coordinates(from);
+        chessSquare *to_square = parse_coordinates(to);
 
-        move_piece(parse_coordinates(from), parse_coordinates(to));
+        printf("\n(from:\n  file: %d\n  row: %d\nto:\n  file: %d\n  row: %d)\n\n",
+            file_to_int(from_square), row_to_int(from_square),
+            file_to_int(to_square), row_to_int(to_square));
+
+        if (from_square->piece.type == EMPTY) {
+            printf("Can't move an empty square!\n\n");
+            continue;
+        }
+        if (from_square->piece.color != turn) {
+            printf("Don't move other players' pieces!\n\n");
+            continue;
+        }
+        if (move_piece(from_square, to_square) == MOVE_ILLEGAL) {
+            printf("Illegal move! Try again!\n\n");
+            continue;
+        }
 
         turn = (turn == WHITE) ? BLACK : WHITE;
         printf("\n");
