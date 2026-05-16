@@ -171,6 +171,23 @@ int is_valid_move(chessSquare *piece, chessSquare *dest) {
         }
         if (dest->piece.type != EMPTY && file_to_int(piece) == file_to_int(dest)) return MOVE_ILLEGAL;
     }
+    else if (piece->piece.type == KNIGHT) {
+        if (row_to_int(dest) == row_to_int(piece) + 2 || \
+            row_to_int(dest) == row_to_int(piece) - 2) {
+            if (file_to_int(dest) == file_to_int(piece) + 1 || \
+                    file_to_int(dest) == file_to_int(piece) - 1) {
+                return MOVE_LEGAL;
+            }
+        }
+        else if (file_to_int(dest) == file_to_int(piece) + 2 || \
+            file_to_int(dest) == file_to_int(piece) - 2) {
+            if (row_to_int(dest) == row_to_int(piece) + 1 || \
+                    row_to_int(dest) == row_to_int(piece) - 1) {
+                return MOVE_LEGAL;
+            }
+        }
+        return MOVE_ILLEGAL;
+    }
 }
 
 int move_piece(chessSquare *piece, chessSquare *dest) {
