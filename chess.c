@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 enum chessPieceType {
     PAWN,
@@ -131,6 +132,41 @@ int file_to_int(chessSquare *square) {
     return (square->file - 'a');
 }
 
+int rook_can_move(int piece_row, int piece_file, int dest_row, int dest_file) {
+    if ((dest_file > piece_file || dest_file < piece_file) &&
+        (dest_row > piece_row || dest_row < piece_row)) {
+        return 0;
+    }
+    if (dest_row > piece_row) {
+        for (int i = piece_row + 1; i < dest_row; i++)
+            if (chess_board[i][dest_file].piece.type != EMPTY) return 0;
+    } else if (dest_row < piece_row) {
+        for (int i = piece_row - 1; i > dest_row; i--)
+            if (chess_board[i][dest_file].piece.type != EMPTY) return 0;
+    } else if (dest_file > piece_file) {
+        for (int i = piece_file + 1; i < dest_file; i++)
+            if (chess_board[dest_row][i].piece.type != EMPTY) return 0;
+    } else if (dest_file < piece_file) {
+        for (int i = piece_file - 1; i > dest_file; i--)
+            if (chess_board[dest_row][i].piece.type != EMPTY) return 0;
+    }
+    return 1;
+}
+
+int bishop_can_move(int piece_row, int piece_file, int dest_row, int dest_file) {
+    int row_diff = dest_row - piece_row;
+    int file_diff = dest_file - piece_file;
+    if (abs(row_diff) != abs(file_diff)) return 0;
+    int row_step = (row_diff > 0) ? 1 : -1;
+    int file_step = (file_diff > 0) ? 1 : -1;
+    int r = piece_row + row_step, f = piece_file + file_step;
+    while (r != dest_row && f != dest_file) {
+        if (chess_board[r][f].piece.type != EMPTY) return 0;
+        r += row_step; f += file_step;
+    }
+    return 1;
+}
+
 #define MOVE_LEGAL   24
 #define MOVE_ILLEGAL 25
 
@@ -140,7 +176,6 @@ int is_valid_move(chessSquare *piece, chessSquare *dest) {
 
     int dest_row = row_to_int(dest);
     int dest_file = file_to_int(dest);
-
 
     // You can never stay in the same place after a move.
     if (dest_file == piece_file && \
@@ -216,45 +251,15 @@ int is_valid_move(chessSquare *piece, chessSquare *dest) {
         }
     }
     else if (piece->piece.type == ROOK) {
-        if ((dest_file > piece_file || dest_file < piece_file) && \
-                (dest_row > piece_row || dest_row < piece_row)) {
-            return MOVE_ILLEGAL;
-        }
-
-        // `block` is the coords on the file/row where a piece blocks
-        // the view of another piece.
-        int block = -1;
-
-        // We handle the cases differently depending on the four directions
-        // the rook can go in.
-        if (dest_row > piece_row) {
-            for (int i = piece_row; i < dest_row; i++) {
-                if (chess_board[i][dest_file].piece.type != EMPTY \
-                    && i != piece_row) block = i;
-                if (block < dest_row && block != -1) return MOVE_ILLEGAL;
-            }
-        }
-        else if (dest_row < piece_row) {
-            for (int i = piece_row; i > dest_row; i--) {
-                if (chess_board[i][dest_file].piece.type != EMPTY \
-                    && i != piece_row) block = i;
-                if (block > dest_row && block != -1) return MOVE_ILLEGAL;
-            }
-        }
-        else if (dest_file > piece_file) {
-            for (int i = piece_row; i < dest_row; i++) {
-                if (chess_board[dest_row][i].piece.type != EMPTY \
-                    && i != piece_file) block = i;
-                if (block < dest_file && block != -1) return MOVE_ILLEGAL;
-            }
-        }
-        else if (dest_file < piece_file) {
-            for (int i = piece_row; i > dest_row; i--) {
-                if (chess_board[dest_row][i].piece.type != EMPTY \
-                    && i != piece_file) block = i;
-                if (block > dest_file && block != -1) return MOVE_ILLEGAL;
-            }
-        }
+        if (!rook_can_move(piece_row, piece_file, dest_row, dest_file)) return MOVE_ILLEGAL;
+    }
+    else if (piece->piece.type == BISHOP) {
+        if (!bishop_can_move(piece_row, piece_file, dest_row, dest_file)) return MOVE_ILLEGAL;
+    }
+    else if (piece->piece.type == QUEEN) {
+        if (!rook_can_move(piece_row, piece_file, dest_row, dest_file) &&
+            !bishop_can_move(piece_row, piece_file, dest_row, dest_file))
+        return MOVE_ILLEGAL;
     }
 
     return MOVE_LEGAL;
