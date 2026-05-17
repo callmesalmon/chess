@@ -135,6 +135,16 @@ int file_to_int(chessSquare *square) {
 #define MOVE_ILLEGAL 25
 
 int is_valid_move(chessSquare *piece, chessSquare *dest) {
+    // You can never stay in the same place..?
+    if (file_to_int(dest) == file_to_int(piece) && \
+            row_to_int(dest) == row_to_int(piece)) {
+        return MOVE_ILLEGAL;
+    }
+
+    // You can't capture a piece of the same color
+    if (piece->piece.color == BLACK && dest->piece.color == BLACK) return MOVE_ILLEGAL;
+    if (piece->piece.color == WHITE && dest->piece.color == WHITE) return MOVE_ILLEGAL;
+
     if (piece->piece.type == PAWN) {
         if (piece->piece.color == WHITE) {
             if (row_to_int(piece) == 1) {
@@ -187,6 +197,16 @@ int is_valid_move(chessSquare *piece, chessSquare *dest) {
             }
         }
         return MOVE_ILLEGAL;
+    }
+    else if (piece->piece.type == KING) {
+        if (file_to_int(dest) > file_to_int(piece) + 1 || \
+                file_to_int(dest) < file_to_int(piece) - 1) {
+            return MOVE_ILLEGAL;
+        }
+        if (row_to_int(dest) > row_to_int(piece) + 1 || \
+                row_to_int(dest) < row_to_int(piece) - 1) {
+            return MOVE_ILLEGAL;
+        }
     }
 }
 
