@@ -362,9 +362,6 @@ int main() {
         chessSquare *from_square = parse_coordinates(from);
         chessSquare *to_square = parse_coordinates(to);
 
-        printf("("); print_square(from_square->piece); printf(")");
-        printf(" -> ("); print_square(to_square->piece); printf(")\n");
-
         if (from_square->piece.type == EMPTY) {
             printf("Can't move an empty square!\n\n");
             continue;
