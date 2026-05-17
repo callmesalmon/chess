@@ -321,7 +321,6 @@ int move_piece(chessSquare *piece, chessSquare *dest) {
 
     if (piece->piece.type == KING && dest->piece.type == ROOK && \
             dest->piece.color == piece->piece.color) {
-        printf("trying to castle\n");
         if (try_to_castle(piece, dest) == MOVE_ILLEGAL) return MOVE_ILLEGAL;
 
         goto main;
