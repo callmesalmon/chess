@@ -23,6 +23,8 @@ enum chessPieceColor {
 typedef struct {
     enum chessPieceType type;
     enum chessPieceColor color;
+
+    int has_moved;
 } chessPiece;
 
 typedef struct {
@@ -44,6 +46,7 @@ int is_good_square(chessSquare square) {
 int set_square(int rank, int file, enum chessPieceType type, enum chessPieceColor color) {
     chess_board[rank][file].piece.type = type;
     chess_board[rank][file].piece.color = color;
+    chess_board[rank][file].piece.has_moved = 0;
     chess_board[rank][file].row = '1' + rank;
     chess_board[rank][file].file = 'a' + file;
 }
@@ -132,11 +135,15 @@ int file_to_int(chessSquare *square) {
     return (square->file - 'a');
 }
 
+// can rook move from point a to point b.
+//
+// same with bishop_can_move but with the bishop.
 int rook_can_move(int piece_row, int piece_file, int dest_row, int dest_file) {
     if ((dest_file > piece_file || dest_file < piece_file) &&
         (dest_row > piece_row || dest_row < piece_row)) {
         return 0;
     }
+
     if (dest_row > piece_row) {
         for (int i = piece_row + 1; i < dest_row; i++)
             if (chess_board[i][dest_file].piece.type != EMPTY) return 0;
@@ -150,20 +157,27 @@ int rook_can_move(int piece_row, int piece_file, int dest_row, int dest_file) {
         for (int i = piece_file - 1; i > dest_file; i--)
             if (chess_board[dest_row][i].piece.type != EMPTY) return 0;
     }
+
     return 1;
 }
 
+// this implementation is a bit smarter than the rook_can_move implementation, but a slight
+// bit less readable.
 int bishop_can_move(int piece_row, int piece_file, int dest_row, int dest_file) {
     int row_diff = dest_row - piece_row;
     int file_diff = dest_file - piece_file;
+
     if (abs(row_diff) != abs(file_diff)) return 0;
+
     int row_step = (row_diff > 0) ? 1 : -1;
     int file_step = (file_diff > 0) ? 1 : -1;
+
     int r = piece_row + row_step, f = piece_file + file_step;
     while (r != dest_row && f != dest_file) {
         if (chess_board[r][f].piece.type != EMPTY) return 0;
         r += row_step; f += file_step;
     }
+
     return 1;
 }
 
@@ -265,15 +279,66 @@ int is_valid_move(chessSquare *piece, chessSquare *dest) {
     return MOVE_LEGAL;
 }
 
+int try_to_castle(chessSquare *king, chessSquare *rook) {
+    int row = row_to_int(king);
+    int king_file = file_to_int(king);
+    int rook_file = file_to_int(rook);
+
+    if (king->piece.type != KING || rook->piece.type != ROOK) return MOVE_ILLEGAL;
+    if (king->piece.color != rook->piece.color) return MOVE_ILLEGAL;
+    if (king->piece.has_moved || rook->piece.has_moved) return MOVE_ILLEGAL;
+
+    // 1 = kingside and -1 = queenside
+    int dir = (rook_file > king_file) ? 1 : -1;
+
+    // Squares between king and rook must be empty
+        if (chess_board[row][f].piece.type != EMPTY) return MOVE_ILLEGAL;
+
+    int new_king_file = king_file + 2*dir; // King moves 2 to rook
+    int new_rook_file = new_king_file - dir; // Rook is one square more to the center than the king
+
+    chess_board[row][new_king_file].piece = king->piece;
+    chess_board[row][new_king_file].piece.has_moved = 1;
+
+    chess_board[row][new_rook_file].piece = rook->piece;
+    chess_board[row][new_rook_file].piece.has_moved = 1;
+
+    // Clear original squares
+    king->piece.type = EMPTY;
+    king->piece.color = NO_COLOR;
+    king->piece.has_moved = 0;
+
+    rook->piece.type = EMPTY;
+    rook->piece.color = NO_COLOR;
+    rook->piece.has_moved = 0;
+
+    return MOVE_LEGAL;
+}
+
+
 int move_piece(chessSquare *piece, chessSquare *dest) {
     if (piece->piece.type == EMPTY || piece->piece.color == NO_COLOR) return MOVE_ILLEGAL;
     if (!is_good_square(*piece) || !is_good_square(*dest)) return MOVE_ILLEGAL;
+
+    if (piece->piece.type == KING && dest->piece.type == ROOK && \
+            dest->piece.color == piece->piece.color) {
+        printf("trying to castle\n");
+        if (try_to_castle(piece, dest) == MOVE_ILLEGAL) return MOVE_ILLEGAL;
+
+        goto main; // CANNOT CHECK FOR VALIDITY AFTER CASTLING. Castling breaks normal rules.
+    }
+
     if (is_valid_move(piece, dest) == MOVE_ILLEGAL) return MOVE_ILLEGAL;
+
+main:
 
     dest->piece.type = piece->piece.type;
     dest->piece.color = piece->piece.color;
+    dest->piece.has_moved = 1;
+
     piece->piece.type = EMPTY;
     piece->piece.color = NO_COLOR;
+    piece->piece.has_moved = 0;
 
     return 0;
 }
@@ -307,6 +372,7 @@ int main() {
             printf("Don't move other players' pieces!\n\n");
             continue;
         }
+
         if (move_piece(from_square, to_square) == MOVE_ILLEGAL) {
             printf("Illegal move! Try again!\n\n");
             continue;
