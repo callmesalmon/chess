@@ -288,14 +288,14 @@ int try_to_castle(chessSquare *king, chessSquare *rook) {
     if (king->piece.color != rook->piece.color) return MOVE_ILLEGAL;
     if (king->piece.has_moved || rook->piece.has_moved) return MOVE_ILLEGAL;
 
-    // 1 = kingside and -1 = queenside
     int dir = (rook_file > king_file) ? 1 : -1;
 
-    // Squares between king and rook must be empty
+    for (int f = king_file + dir; f != rook_file; f += dir) {
         if (chess_board[row][f].piece.type != EMPTY) return MOVE_ILLEGAL;
+    }
 
-    int new_king_file = king_file + 2*dir; // King moves 2 to rook
-    int new_rook_file = new_king_file - dir; // Rook is one square more to the center than the king
+    int new_king_file = king_file + 2*dir;     // king moves two toward the rook
+    int new_rook_file = new_king_file - dir;   // rook points to the center next to the king
 
     chess_board[row][new_king_file].piece = king->piece;
     chess_board[row][new_king_file].piece.has_moved = 1;
@@ -303,7 +303,6 @@ int try_to_castle(chessSquare *king, chessSquare *rook) {
     chess_board[row][new_rook_file].piece = rook->piece;
     chess_board[row][new_rook_file].piece.has_moved = 1;
 
-    // Clear original squares
     king->piece.type = EMPTY;
     king->piece.color = NO_COLOR;
     king->piece.has_moved = 0;
@@ -325,7 +324,7 @@ int move_piece(chessSquare *piece, chessSquare *dest) {
         printf("trying to castle\n");
         if (try_to_castle(piece, dest) == MOVE_ILLEGAL) return MOVE_ILLEGAL;
 
-        goto main; // CANNOT CHECK FOR VALIDITY AFTER CASTLING. Castling breaks normal rules.
+        goto main;
     }
 
     if (is_valid_move(piece, dest) == MOVE_ILLEGAL) return MOVE_ILLEGAL;
@@ -363,6 +362,9 @@ int main() {
 
         chessSquare *from_square = parse_coordinates(from);
         chessSquare *to_square = parse_coordinates(to);
+
+        printf("("); print_square(from_square->piece); printf(")");
+        printf(" -> ("); print_square(to_square->piece); printf(")\n");
 
         if (from_square->piece.type == EMPTY) {
             printf("Can't move an empty square!\n\n");
