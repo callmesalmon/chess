@@ -31,7 +31,7 @@ typedef struct {
     char file; // i. e 'a'
 } chessSquare;
 
-chessSquare chess_board[8][8]; // [8] <- row + [8] <- file
+chessSquare chess_board[8][8]; // Row comes first, i. e chess_board[0][3] = e1
 
 int is_good_square(chessSquare square) {
     if (square.row > '8' || square.row < '1') return 0;
@@ -135,79 +135,129 @@ int file_to_int(chessSquare *square) {
 #define MOVE_ILLEGAL 25
 
 int is_valid_move(chessSquare *piece, chessSquare *dest) {
-    // You can never stay in the same place..?
-    if (file_to_int(dest) == file_to_int(piece) && \
-            row_to_int(dest) == row_to_int(piece)) {
+    int piece_row = row_to_int(piece);
+    int piece_file = file_to_int(piece);
+
+    int dest_row = row_to_int(dest);
+    int dest_file = file_to_int(dest);
+
+
+    // You can never stay in the same place after a move.
+    if (dest_file == piece_file && \
+            dest_row == piece_row) {
         return MOVE_ILLEGAL;
     }
 
-    // You can't capture a piece of the same color
+    // You can't capture a piece of the same color.
     if (piece->piece.color == BLACK && dest->piece.color == BLACK) return MOVE_ILLEGAL;
     if (piece->piece.color == WHITE && dest->piece.color == WHITE) return MOVE_ILLEGAL;
 
     if (piece->piece.type == PAWN) {
         if (piece->piece.color == WHITE) {
-            if (row_to_int(piece) == 1) {
-                if (row_to_int(dest) > row_to_int(piece) + 2) {
+            if (piece_row == 1) {
+                if (dest_row > piece_row + 2) {
                     return MOVE_ILLEGAL;
                 }
             }
-            else if (row_to_int(dest) > row_to_int(piece) + 1) {
+            else if (dest_row > piece_row + 1) {
                 return MOVE_ILLEGAL;
             }
 
-            if (file_to_int(piece) != file_to_int(dest)) {
-                if (row_to_int(dest) == row_to_int(piece) + 1 && dest->piece.type != EMPTY) {
+            if (piece_file != dest_file) {
+                if (dest_row == piece_row + 1 && dest->piece.type != EMPTY) {
                     return MOVE_LEGAL;
                 }
                 return MOVE_ILLEGAL;
             }
         }
         if (piece->piece.color == BLACK) {
-            if (row_to_int(piece) == 6) {
-                if (row_to_int(dest) < row_to_int(piece) - 2) {
+            if (piece_row == 6) {
+                if (dest_row < piece_row - 2) {
                     return MOVE_ILLEGAL;
                 }
             }
-            else if (row_to_int(dest) < row_to_int(piece) - 1) {
+            else if (dest_row < piece_row - 1) {
                 return MOVE_ILLEGAL;
             }
-            if (file_to_int(piece) != file_to_int(dest)) {
-                if (row_to_int(dest) == row_to_int(piece) - 1 && dest->piece.type != EMPTY) {
+            if (piece_file != dest_file) {
+                if (dest_row == piece_row - 1 && dest->piece.type != EMPTY) {
                     return MOVE_LEGAL;
                 }
                 return MOVE_ILLEGAL;
             }
         }
-        if (dest->piece.type != EMPTY && file_to_int(piece) == file_to_int(dest)) return MOVE_ILLEGAL;
+        if (dest->piece.type != EMPTY && piece_file == dest_file) return MOVE_ILLEGAL;
     }
     else if (piece->piece.type == KNIGHT) {
-        if (row_to_int(dest) == row_to_int(piece) + 2 || \
-            row_to_int(dest) == row_to_int(piece) - 2) {
-            if (file_to_int(dest) == file_to_int(piece) + 1 || \
-                    file_to_int(dest) == file_to_int(piece) - 1) {
+        if (dest_row == piece_row + 2 || \
+            dest_row == piece_row - 2) {
+            if (dest_file == piece_file + 1 || \
+                    dest_file == piece_file - 1) {
                 return MOVE_LEGAL;
             }
         }
-        else if (file_to_int(dest) == file_to_int(piece) + 2 || \
-            file_to_int(dest) == file_to_int(piece) - 2) {
-            if (row_to_int(dest) == row_to_int(piece) + 1 || \
-                    row_to_int(dest) == row_to_int(piece) - 1) {
+        else if (dest_file == piece_file + 2 || \
+            dest_file == piece_file - 2) {
+            if (dest_row == piece_row + 1 || \
+                    dest_row == piece_row - 1) {
                 return MOVE_LEGAL;
             }
         }
         return MOVE_ILLEGAL;
     }
     else if (piece->piece.type == KING) {
-        if (file_to_int(dest) > file_to_int(piece) + 1 || \
-                file_to_int(dest) < file_to_int(piece) - 1) {
+        if (dest_file > piece_file + 1 || \
+                dest_file < piece_file - 1) {
             return MOVE_ILLEGAL;
         }
-        if (row_to_int(dest) > row_to_int(piece) + 1 || \
-                row_to_int(dest) < row_to_int(piece) - 1) {
+        if (dest_row > piece_row + 1 || \
+                dest_row < piece_row - 1) {
             return MOVE_ILLEGAL;
         }
     }
+    else if (piece->piece.type == ROOK) {
+        if ((dest_file > piece_file || dest_file < piece_file) && \
+                (dest_row > piece_row || dest_row < piece_row)) {
+            return MOVE_ILLEGAL;
+        }
+
+        // `block` is the coords on the file/row where a piece blocks
+        // the view of another piece.
+        int block = -1;
+
+        // We handle the cases differently depending on the four directions
+        // the rook can go in.
+        if (dest_row > piece_row) {
+            for (int i = piece_row; i < dest_row; i++) {
+                if (chess_board[i][dest_file].piece.type != EMPTY \
+                    && i != piece_row) block = i;
+                if (block < dest_row && block != -1) return MOVE_ILLEGAL;
+            }
+        }
+        else if (dest_row < piece_row) {
+            for (int i = piece_row; i > dest_row; i--) {
+                if (chess_board[i][dest_file].piece.type != EMPTY \
+                    && i != piece_row) block = i;
+                if (block > dest_row && block != -1) return MOVE_ILLEGAL;
+            }
+        }
+        else if (dest_file > piece_file) {
+            for (int i = piece_row; i < dest_row; i++) {
+                if (chess_board[dest_row][i].piece.type != EMPTY \
+                    && i != piece_file) block = i;
+                if (block < dest_file && block != -1) return MOVE_ILLEGAL;
+            }
+        }
+        else if (dest_file < piece_file) {
+            for (int i = piece_row; i > dest_row; i--) {
+                if (chess_board[dest_row][i].piece.type != EMPTY \
+                    && i != piece_file) block = i;
+                if (block > dest_file && block != -1) return MOVE_ILLEGAL;
+            }
+        }
+    }
+
+    return MOVE_LEGAL;
 }
 
 int move_piece(chessSquare *piece, chessSquare *dest) {
